@@ -66,10 +66,90 @@ const fallback: AgentResult = {
     "Ho già preparato un piano visite personalizzato e richiesto i dati all'ente salute. Pronta a prenotare lo slot con priorità più alta e a proporre follow-up automatici.",
 };
 
+// --- AGENTS ---
+
+async function profilerAgent(userContext: string): Promise<{ summary: string; risks: string[] }> {
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content:
+          "Sei il Profiler Agent. Il tuo compito è analizzare i dati grezzi del paziente ed estrarre un profilo clinico sintetico e una lista di fattori di rischio. Restituisci JSON con chiavi 'summary' (stringa) e 'risks' (array di stringhe).",
+      },
+      {
+        role: "user",
+        content: `Dati paziente: ${userContext}`,
+      },
+    ],
+  });
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new Error("Profiler failed");
+  return JSON.parse(content);
+}
+
+async function healthEntityAgent(events: string[]): Promise<{ dataPulls: string[]; context: string }> {
+  if (!events || events.length === 0) {
+    return {
+      dataPulls: ["Richiesta standard: ultimi 12 mesi di referti ematici."],
+      context: "Nessun evento acuto segnalato.",
+    };
+  }
+
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.3,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content:
+          "Sei l'Ente Salute Agent. Analizzi eventi clinici segnalati in tempo reale (es. 'attacco di cuore', 'aritmia') e simuli il recupero di dati pertinenti dai sistemi ospedalieri. Restituisci JSON con 'dataPulls' (array di stringhe che descrivono i dati recuperati) e 'context' (stringa che riassume la situazione clinica esterna).",
+      },
+      {
+        role: "user",
+        content: `Eventi segnalati: ${JSON.stringify(events)}`,
+      },
+    ],
+  });
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new Error("Health Entity failed");
+  return JSON.parse(content);
+}
+
+async function plannerAgent(
+  profile: { summary: string; risks: string[] },
+  healthData: { dataPulls: string[]; context: string }
+): Promise<{ recommendedVisits: AiVisit[]; proactiveMessage: string }> {
+  const completion = await client.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.4,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content:
+          "Sei il Planner Agent. Generi un piano di visite mediche basato sul profilo del paziente e sui dati dell'ente salute. Se ci sono eventi acuti (es. attacco di cuore), dai priorità assoluta ai controlli correlati. Restituisci JSON con 'recommendedVisits' (array di oggetti {title, timeframe, reason, priority, category}) e 'proactiveMessage' (messaggio finale all'utente).",
+      },
+      {
+        role: "user",
+        content: `Profilo: ${JSON.stringify(profile)}. Dati Ente Salute: ${JSON.stringify(healthData)}.`,
+      },
+    ],
+  });
+  const content = completion.choices[0]?.message?.content;
+  if (!content) throw new Error("Planner failed");
+  return JSON.parse(content);
+}
+
+// --- MASTER AGENT (Orchestrator) ---
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { form } = body as { form?: Record<string, unknown> };
+    const { form, healthEvents } = body as { form?: Record<string, unknown>; healthEvents?: string[] };
 
     if (!client.apiKey) {
       return NextResponse.json(
@@ -79,54 +159,40 @@ export async function POST(request: Request) {
     }
 
     const userContext = JSON.stringify(form ?? {}, null, 2);
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            [
-              "Sei un assistente che propone controlli medici periodici (check-up, visite, esami del sangue, screening) sulla base di età, sesso biologico, fattori di rischio (fumo, obesità, familiarità, patologie note), sintomi riferiti, area geografica.",
-              "Limiti IMPORTANTI: non sei un medico, niente diagnosi o prescrizioni; indicazioni solo generali da confermare con un medico; se emergono sintomi gravi (dolore toracico, dispnea, segni di ictus, pensieri suicidari, febbre molto alta persistente, ecc.) devi dire di contattare subito 118/PS/medico curante; non dare dosaggi, esami invasivi complessi o interpretazioni avanzate.",
-              "Cosa fare: leggi i dati del paziente; fai domande solo se mancano dati fondamentali; restituisci elenco strutturato di controlli annuali, controlli biennali/triennali/quinquennali, screening rilevanti per età/sesso, visite specialistiche sensate.",
-              "Per ogni voce: tipo visita/esame, frequenza indicativa, motivazione semplice. Concludi sempre con: 'Queste sono indicazioni generali: portale al tuo medico di base per decidere insieme cosa è davvero appropriato per te.'",
-              "Stile: chiaro, sintetico ma completo, in italiano semplice; usa elenchi puntati e intestazioni (###); se non sei sicuro, dillo esplicitamente.",
-              "Formato JSON OBBLIGATORIO con chiavi: profileSummary, riskHighlights (array), recommendedVisits (array di {title,timeframe,reason,priority: alta|media|bassa,category: fortemente consigliata|routine|benessere|altre}), dataPulls (array), proactiveMessage (frase). Motivazioni e frequenze devono rispettare i limiti sopra.",
-            ].join(" "),
-        },
-        {
-          role: "user",
-          content: `Dati paziente: ${userContext}. Non limitarti a riassumere; proponi azioni immediate.`,
-        },
-      ],
-    });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      return NextResponse.json({ result: fallback, error: "Nessun contenuto" });
-    }
+    // Parallel execution of Profiler and Health Entity
+    const [profileResult, healthResult] = await Promise.all([
+      profilerAgent(userContext),
+      healthEntityAgent(healthEvents ?? []),
+    ]);
 
-    let parsed: AgentResult = fallback;
-    try {
-      const raw = JSON.parse(content);
-      parsed = normalizeResult(raw);
-    } catch (err) {
-      console.error("Errore parsing AI:", err);
-    }
+    // Sequential execution of Planner (needs previous outputs)
+    const plannerResult = await plannerAgent(profileResult, healthResult);
 
-    return NextResponse.json({ result: parsed });
+    // Aggregate results
+    const finalResult: AgentResult = {
+      profileSummary: profileResult.summary,
+      riskHighlights: profileResult.risks,
+      dataPulls: healthResult.dataPulls,
+      recommendedVisits: plannerResult.recommendedVisits,
+      proactiveMessage: plannerResult.proactiveMessage,
+    };
+
+    // Normalize to ensure safety
+    const normalized = normalizeResult(finalResult);
+
+    return NextResponse.json({ result: normalized });
   } catch (err) {
-    console.error("Errore generazione AI:", err);
+    console.error("Errore Master Agent:", err);
     return NextResponse.json(
-      { result: fallback, error: "Errore inatteso" },
+      { result: fallback, error: "Errore orchestrazione AI" },
       { status: 200 },
     );
   }
 }
 
 function normalizeResult(input: unknown): AgentResult {
+  const raw = input as any;
   const safeString = (value: unknown, fallbackValue = "") =>
     typeof value === "string" ? value : JSON.stringify(value ?? fallbackValue);
 
@@ -144,15 +210,15 @@ function normalizeResult(input: unknown): AgentResult {
         reason: safeString(visit?.reason, "Motivo non specificato"),
         priority:
           visit?.priority === "alta" ||
-          visit?.priority === "media" ||
-          visit?.priority === "bassa"
+            visit?.priority === "media" ||
+            visit?.priority === "bassa"
             ? visit.priority
             : "media",
         category:
           visit?.category === "fortemente consigliata" ||
-          visit?.category === "routine" ||
-          visit?.category === "benessere" ||
-          visit?.category === "altre"
+            visit?.category === "routine" ||
+            visit?.category === "benessere" ||
+            visit?.category === "altre"
             ? visit.category
             : "fortemente consigliata",
       }))
@@ -161,23 +227,23 @@ function normalizeResult(input: unknown): AgentResult {
 
   return {
     profileSummary: safeString(
-      input?.profileSummary,
+      raw?.profileSummary,
       fallback.profileSummary,
     ),
     riskHighlights:
-      safeArray(input?.riskHighlights).length > 0
-        ? safeArray(input?.riskHighlights)
+      safeArray(raw?.riskHighlights).length > 0
+        ? safeArray(raw?.riskHighlights)
         : fallback.riskHighlights,
     recommendedVisits:
-      safeVisits(input?.recommendedVisits).length > 0
-        ? safeVisits(input?.recommendedVisits)
+      safeVisits(raw?.recommendedVisits).length > 0
+        ? safeVisits(raw?.recommendedVisits)
         : fallback.recommendedVisits,
     dataPulls:
-      safeArray(input?.dataPulls).length > 0
-        ? safeArray(input?.dataPulls)
+      safeArray(raw?.dataPulls).length > 0
+        ? safeArray(raw?.dataPulls)
         : fallback.dataPulls,
     proactiveMessage:
-      safeString(input?.proactiveMessage, fallback.proactiveMessage) ||
+      safeString(raw?.proactiveMessage, fallback.proactiveMessage) ||
       fallback.proactiveMessage,
   };
 }
