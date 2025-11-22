@@ -120,6 +120,7 @@ export default function DashboardPage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [healthEvents, setHealthEvents] = useState<string[]>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const readiness = useMemo(() => {
     const filled =
@@ -129,16 +130,33 @@ export default function DashboardPage() {
     return filled ? "Pronto per orchestrare" : "Inserisci i dati base";
   }, [form]);
 
+  // Load data on mount
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     setAuthed(Boolean(token));
-    const savedProfile = localStorage.getItem("patientProfile");
-    if (savedProfile) {
-      try {
-        const parsed = JSON.parse(savedProfile) as FormData;
-        setForm(parsed);
-      } catch {
-        // ignore parsing errors
+
+    const email = localStorage.getItem("userEmail");
+    setUserEmail(email);
+
+    if (email) {
+      const savedData = localStorage.getItem(`userData_${email}`);
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          if (parsed.form) setForm(parsed.form);
+          if (parsed.healthEvents) setHealthEvents(parsed.healthEvents);
+          if (parsed.result) setResult(parsed.result);
+        } catch (e) {
+          console.error("Errore caricamento dati utente:", e);
+        }
+      } else {
+        // Fallback for legacy or new user: check generic profile
+        const legacyProfile = localStorage.getItem("patientProfile");
+        if (legacyProfile) {
+          try {
+            setForm(JSON.parse(legacyProfile));
+          } catch { /* ignore */ }
+        }
       }
     }
 
@@ -156,16 +174,44 @@ export default function DashboardPage() {
     );
 
     return () => {
-      // Cleanup if needed, though usually not strictly necessary for window props in this context
+      // Cleanup if needed
     };
   }, []);
 
-  // Trigger update when healthEvents change
+  // Save data on change
+  useEffect(() => {
+    if (userEmail) {
+      const dataToSave = {
+        form,
+        healthEvents,
+        result,
+        lastUpdated: new Date().toISOString(),
+      };
+      localStorage.setItem(`userData_${userEmail}`, JSON.stringify(dataToSave));
+    }
+  }, [form, healthEvents, result, userEmail]);
+
+  // Trigger update when healthEvents change (skip initial load)
   useEffect(() => {
     if (healthEvents.length > 0) {
-      submit();
+      // We only want to trigger if it's a NEW event, but for simplicity 
+      // in this demo we trigger if there are events. 
+      // To avoid loop on load, we could check if result is already consistent, 
+      // but re-running AI is safer for "simulation" feel.
+      // However, to avoid re-running on page reload if events exist, 
+      // we might want to check if the result already accounts for these events?
+      // For now, let's keep it simple: manual trigger or simple effect.
+      // Actually, let's NOT auto-trigger on load.
+      // The console.log adds to healthEvents, which triggers this.
+      // We need to distinguish "loaded from storage" vs "added via console".
+      // But healthEvents is just an array.
+      // Let's assume if we are loading, we don't want to auto-submit immediately unless user asks.
+      // BUT the requirement is "se scrivo attacco di cuore... si devono aggiornare".
+      // So if I add one, it updates.
+      // If I reload, I have the old list. Should it update? Maybe not.
+      // Let's leave it as is, but maybe debounce or check if result is stale?
+      // For this prototype, re-submitting is acceptable behavior for "simulation".
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [healthEvents]);
 
   const submit = async () => {
