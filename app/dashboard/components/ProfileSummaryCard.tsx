@@ -16,9 +16,9 @@ export function ProfileSummaryCard({
     return (
         <div className="space-y-4">
             <Card>
-                <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-2">
                     <CardTitle className="text-lg">Sintesi del profilo</CardTitle>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-200">
+                    <span className="w-fit rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-200">
                         Snapshot
                     </span>
                 </CardHeader>
@@ -39,11 +39,11 @@ export function ProfileSummaryCard({
             </Card>
 
             <Card>
-                <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-2">
                     <CardTitle className="text-lg">
                         Dati richiesti all&apos;ente salute
                     </CardTitle>
-                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-200">
+                    <span className="w-fit rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-200">
                         Richieste
                     </span>
                 </CardHeader>

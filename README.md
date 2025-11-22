@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prototype Documentation
 
-## Getting Started
+## How to Run
+1.  **Install Dependencies**:
+    ```bash
+    pnpm install
+    ```
+2.  **Start Development Server**:
+    ```bash
+    pnpm dev
+    ```
+3.  **Access the Application**:
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-First, run the development server:
+## Interaction Guide
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 1. User Login & Persistence
+- Navigate to `/login` to create an account or log in.
+- **Feature**: User data (profile and health events) is persisted locally in the browser's `localStorage`, keyed by your email. This allows you to simulate different users with distinct data on the same machine.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Dashboard & AI Orchestration
+- Navigate to `/dashboard`.
+- **Profile**: Fill in the patient data form.
+- **Generate Plan**: Click "Genera piano con AI" to trigger the Multi-Agent system.
+- **Results**: View the AI-generated profile summary, risk highlights, and recommended visits.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Simulating Health Events (Console Interface)
+- Open the browser's Developer Tools (F12 or Right-click > Inspect > Console).
+- Use the global `window.enteSalute` object to simulate external health events (e.g., data coming from a hospital or wearable).
+- **Command**:
+    ```javascript
+    window.enteSalute.segnala("attacco di cuore")
+    ```
+- **Effect**: This triggers a real-time update. The "Health Entity" agent processes the event, and the "Planner" agent adjusts the visit recommendations (e.g., adding an urgent cardiology visit).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Technologies & Libraries
 
-## Learn More
+### Open Source Libraries
+- **Next.js 14**: React framework for the application structure and routing.
+- **React**: UI library.
+- **Tailwind CSS**: Utility-first CSS framework for styling.
+- **Framer Motion**: For smooth, scroll-driven animations on the landing page.
+- **clsx / tailwind-merge**: Utilities for conditional and conflict-free class name composition.
+- **OpenAI Node.js SDK**: For interacting with the LLM models.
 
-To learn more about Next.js, take a look at the following resources:
+### Models
+- **GPT-4o-mini**: Used for all AI agents (Profiler, HealthEntity, Planner) to ensure fast and cost-effective responses while maintaining high quality.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Custom Code Logic
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Multi-Agent Architecture ([app/api/multilayer/route.ts](file:///Users/lorenzo/Projects/reply-challenge/healt-site/app/api/multilayer/route.ts))
+Instead of a single prompt, the backend implements a **Multi-Agent System**:
+1.  **Master Agent**: Orchestrates the flow.
+2.  **Profiler Agent**: Analyzes raw form data to create a clinical snapshot.
+3.  **Health Entity Agent**: Simulates an external system. It receives "events" (from the console) and generates context/data pulls.
+4.  **Planner Agent**: Synthesizes the Profile and Health Entity data to generate the final list of recommended visits and a proactive message.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Local Data Persistence ([app/dashboard/page.tsx](file:///Users/lorenzo/Projects/reply-challenge/healt-site/app/dashboard/page.tsx))
+- A custom `useEffect` hook manages data persistence.
+- It watches for changes in the form, AI results, and health events.
+- Data is serialized and saved to `localStorage` using a key derived from the logged-in user's email (`userData_{email}`).
+- On load, it hydrates the state from this local storage, enabling a persistent session experience without a real database.

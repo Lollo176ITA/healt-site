@@ -24,7 +24,7 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#12223a] via-[#0d131c] to-[#0d131c] opacity-80" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(76,140,255,0.08),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(255,204,112,0.08),transparent_28%),radial-gradient(circle_at_60%_70%,rgba(82,255,197,0.06),transparent_26%)]" />
 
-      <main className="relative mx-auto flex max-w-7xl flex-col gap-20 px-4 pb-20 pt-20 sm:px-6 lg:px-8">
+      <main className="relative mx-auto flex max-w-7xl flex-col gap-16 px-4 pb-20 pt-16 sm:gap-20 sm:px-6 lg:px-8">
         {/* Hero Section */}
         <motion.section
           initial="hidden"
@@ -33,26 +33,26 @@ export default function Home() {
           variants={staggerContainer}
           className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr] items-center"
         >
-          <div className="space-y-8">
+          <div className="space-y-8 text-center lg:text-left">
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-teal-100 border border-white/10 backdrop-blur-sm">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
               Assistente salute proattivo
             </motion.div>
 
-            <motion.h1 variants={fadeInUp} className="text-5xl font-bold leading-tight sm:text-6xl tracking-tight text-white">
+            <motion.h1 variants={fadeInUp} className="text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl tracking-tight text-white">
               La tua salute, <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
                 gestita da un assistente dedicato
               </span>
             </motion.h1>
 
-            <motion.p variants={fadeInUp} className="text-xl text-slate-300 leading-relaxed max-w-xl">
+            <motion.p variants={fadeInUp} className="mx-auto text-lg text-slate-300 leading-relaxed max-w-xl lg:mx-0 sm:text-xl">
               Inserisci i dati essenziali, ottieni raccomandazioni di visite e
               richieste verso l&apos;ente salute con un flusso automatico e chiaro,
               senza dover gestire la complessità.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="flex flex-wrap gap-3">
+            <motion.div variants={fadeInUp} className="flex flex-wrap justify-center gap-3 lg:justify-start">
               {[
                 "Profilazione personalizzata",
                 "Agenda dinamica",
@@ -68,7 +68,7 @@ export default function Home() {
               ))}
             </motion.div>
 
-            <motion.div variants={fadeInUp} className="flex flex-wrap gap-4 pt-2">
+            <motion.div variants={fadeInUp} className="flex flex-col gap-4 pt-2 sm:flex-row sm:justify-center lg:justify-start">
               <Link
                 href="/profilo"
                 className="inline-flex items-center justify-center rounded-full bg-emerald-400 px-8 py-4 text-base font-semibold text-slate-900 transition-all hover:translate-y-[-2px] hover:bg-emerald-300 hover:shadow-lg hover:shadow-emerald-400/20"

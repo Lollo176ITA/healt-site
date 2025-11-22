@@ -279,9 +279,9 @@ export default function DashboardPage() {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#12223a] via-[#0d131c] to-[#0d131c] opacity-80" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(76,140,255,0.08),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(255,204,112,0.08),transparent_28%),radial-gradient(circle_at_60%_70%,rgba(82,255,197,0.06),transparent_26%)]" />
 
-      <main className="relative mx-auto flex max-w-7xl flex-col gap-12 px-4 pb-20 pt-14 sm:px-6 lg:px-8">
-        <header className="space-y-4 text-center sm:text-left">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <main className="relative mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-20 pt-14 sm:px-6 lg:px-8">
+        <header className="space-y-6 text-center sm:text-left">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
                 Dashboard paziente
@@ -290,7 +290,7 @@ export default function DashboardPage() {
                 Agenda visite e dati
               </h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col items-center gap-3 sm:flex-row">
               {healthEvents.length > 0 && (
                 <div className="animate-pulse rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-200 border border-red-500/30">
                   {healthEvents.length} Nuovi eventi clinici
@@ -302,7 +302,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <p className="max-w-2xl text-lg text-slate-300">
+          <p className="mx-auto max-w-2xl text-lg text-slate-300 sm:mx-0">
             Compila o aggiorna il profilo, poi genera un piano con sintesi
             clinica, visite consigliate e richieste verso l&apos;ente salute.
           </p>

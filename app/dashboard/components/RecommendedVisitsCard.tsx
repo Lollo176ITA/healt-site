@@ -70,16 +70,16 @@ export function RecommendedVisitsCard({
                                             className="group rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/[0.07]"
                                         >
                                             <div className="mb-3">
-                                                <div className="flex items-center justify-between gap-2">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
                                                     <p className="text-xs text-slate-400">
                                                         {visit.timeframe}
                                                     </p>
                                                     <span
                                                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${visit.priority === "alta"
-                                                                ? "bg-red-500/20 text-red-200"
-                                                                : visit.priority === "media"
-                                                                    ? "bg-amber-500/20 text-amber-200"
-                                                                    : "bg-emerald-500/20 text-emerald-200"
+                                                            ? "bg-red-500/20 text-red-200"
+                                                            : visit.priority === "media"
+                                                                ? "bg-amber-500/20 text-amber-200"
+                                                                : "bg-emerald-500/20 text-emerald-200"
                                                             }`}
                                                     >
                                                         Priorità {visit.priority}
