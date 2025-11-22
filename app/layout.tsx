@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { UserBadge } from "./components/UserBadge";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,20 +36,23 @@ export default function RootLayout({
               <div className="text-lg font-semibold tracking-tight">
                 Regia AI Salute
               </div>
-              <nav className="flex items-center gap-4 text-sm text-slate-200">
-                <Link className="hover:text-white" href="/">
-                  Home
-                </Link>
-                <Link className="hover:text-white" href="/profilo">
-                  Inserimento dati
-                </Link>
-                <Link className="hover:text-white" href="/dashboard">
-                  Dashboard
-                </Link>
-                <Link className="hover:text-white" href="/login">
-                  Login
-                </Link>
-              </nav>
+              <div className="flex items-center gap-4">
+                <nav className="flex items-center gap-4 text-sm text-slate-200">
+                  <Link className="hover:text-white" href="/">
+                    Home
+                  </Link>
+                  <Link className="hover:text-white" href="/profilo">
+                    Inserimento dati
+                  </Link>
+                  <Link className="hover:text-white" href="/dashboard">
+                    Dashboard
+                  </Link>
+                  <Link className="hover:text-white" href="/login">
+                    Login
+                  </Link>
+                </nav>
+                <UserBadge />
+              </div>
             </div>
           </header>
           {children}

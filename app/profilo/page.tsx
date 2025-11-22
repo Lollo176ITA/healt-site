@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type FormData = {
   name: string;
@@ -34,6 +34,7 @@ export default function ProfiloPage() {
     goals: ["Prevenzione"],
   });
   const [saving, setSaving] = useState(false);
+  const [authed, setAuthed] = useState(false);
   const readiness = useMemo(() => {
     const filled =
       form.age.trim() &&
@@ -54,11 +55,29 @@ export default function ProfiloPage() {
     });
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    const saved = localStorage.getItem("patientProfile");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAuthed(Boolean(token));
+    if (saved) {
+      try {
+        setForm(JSON.parse(saved) as FormData);
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    // Qui potresti salvare su backend o localStorage; usiamo alert per demo.
-    alert("Profilo salvato (demo). Vai in dashboard per vedere le visite.");
+    try {
+      localStorage.setItem("patientProfile", JSON.stringify(form));
+      alert("Profilo salvato. Vai in dashboard per vedere le visite.");
+    } catch {
+      alert("Impossibile salvare localmente.");
+    }
     setSaving(false);
   };
 
@@ -82,6 +101,11 @@ export default function ProfiloPage() {
             Stato: {readiness}
           </div>
         </header>
+        {!authed && (
+          <div className="rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Effettua il login per salvare i dati e usarli in dashboard.
+          </div>
+        )}
 
         <form
           onSubmit={submit}

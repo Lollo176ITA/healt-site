@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type FormData = {
   name: string;
@@ -18,6 +18,7 @@ type AiVisit = {
   timeframe: string;
   reason: string;
   priority: "alta" | "media" | "bassa";
+  category: "fortemente consigliata" | "routine" | "benessere" | "altre";
 };
 
 type AgentResult = {
@@ -26,6 +27,25 @@ type AgentResult = {
   recommendedVisits: AiVisit[];
   dataPulls: string[];
   proactiveMessage: string;
+};
+
+type VisitStatus = "non_fatta" | "fatta" | "da_prenotare";
+
+type VisitSelection = {
+  status: VisitStatus;
+  when: string;
+};
+
+type SlotOption = {
+  channel: "pubblico" | "privato";
+  waitingTime: string;
+  priceRange: string;
+  notes: string;
+};
+
+type SlotPlan = {
+  title: string;
+  options: SlotOption[];
 };
 
 const defaultResult: AgentResult = {
@@ -42,18 +62,21 @@ const defaultResult: AgentResult = {
       timeframe: "entro 2 settimane",
       reason: "Allineare storico allergie e valutare stress cronico.",
       priority: "alta",
+      category: "fortemente consigliata",
     },
     {
       title: "Screening metabolico",
       timeframe: "entro 1 mese",
       reason: "Familiarità per diabete: glicemia, HbA1c, profilo lipidico.",
       priority: "media",
+      category: "routine",
     },
     {
       title: "Counseling benessere",
       timeframe: "dopo 6 settimane",
       reason: "Gestione stress + sonno: proporre percorso breve con follow-up.",
       priority: "bassa",
+      category: "benessere",
     },
   ],
   dataPulls: [
@@ -78,6 +101,12 @@ export default function DashboardPage() {
   const [result, setResult] = useState<AgentResult>(defaultResult);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selections, setSelections] = useState<Record<string, VisitSelection>>(
+    {},
+  );
+  const [slots, setSlots] = useState<SlotPlan[] | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [authed, setAuthed] = useState(false);
 
   const readiness = useMemo(() => {
     const filled =
@@ -87,9 +116,24 @@ export default function DashboardPage() {
     return filled ? "Pronto per orchestrare" : "Inserisci i dati base";
   }, [form]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    setAuthed(Boolean(token));
+    const savedProfile = localStorage.getItem("patientProfile");
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile) as FormData;
+        setForm(parsed);
+      } catch {
+        // ignore parsing errors
+      }
+    }
+  }, []);
+
   const submit = async () => {
     setLoading(true);
     setError(null);
+    setSlots(null);
     try {
       const response = await fetch("/api/multilayer", {
         method: "POST",
@@ -114,6 +158,38 @@ export default function DashboardPage() {
     }
   };
 
+  const generateSlots = async () => {
+    setLoadingSlots(true);
+    setError(null);
+    try {
+      const visitsPayload = result.recommendedVisits.map((visit) => {
+        const sel = selections[visit.title];
+        return {
+          title: visit.title,
+          status: sel?.status ?? "da_prenotare",
+          when: sel?.when ?? "",
+        };
+      });
+
+      const res = await fetch("/api/slots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visits: visitsPayload }),
+      });
+      if (!res.ok) throw new Error("Impossibile generare slot");
+      const data = await res.json();
+      setSlots(data.slots as SlotPlan[]);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Si è verificato un problema inatteso",
+      );
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
   return (
     <div className="relative overflow-hidden bg-[#0d131c]">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#12223a] via-[#0d131c] to-[#0d131c] opacity-80" />
@@ -130,6 +206,11 @@ export default function DashboardPage() {
             Compila o aggiorna il profilo, poi genera un piano con sintesi
             clinica, visite consigliate e richieste verso l&apos;ente salute.
           </p>
+          {!authed && (
+            <div className="rounded-2xl border border-amber-300/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              Effettua il login per usare la dashboard e generare le visite.
+            </div>
+          )}
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-teal-100">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             Stato: {readiness}
@@ -287,34 +368,154 @@ export default function DashboardPage() {
               Visite consigliate
             </h2>
             <span className="text-xs uppercase tracking-[0.2em] text-slate-300">
-              Azioni proattive
+              Seleziona stato e genera slot
             </span>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {result.recommendedVisits.map((visit) => (
-              <div
-                key={visit.title}
-                className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/8 to-white/0 p-5"
-              >
-                <div className="absolute right-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">
-                  Priorità {visit.priority}
-                </div>
-                <p className="text-sm uppercase tracking-[0.15em] text-slate-300">
-                  {visit.timeframe}
-                </p>
-                <h3 className="mt-2 text-lg font-semibold text-white">
-                  {visit.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-slate-100">
-                  {visit.reason}
-                </p>
-                <button className="mt-4 inline-flex items-center text-sm font-semibold text-emerald-200 hover:text-emerald-100">
-                  Prenota subito →
-                </button>
-              </div>
-            ))}
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {["fortemente consigliata", "routine", "benessere", "altre"].map(
+              (cat) => {
+                const visits = result.recommendedVisits.filter(
+                  (v) => v.category === cat,
+                );
+                if (!visits.length) return null;
+                return (
+                  <div
+                    key={cat}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                  >
+                    <p className="text-sm uppercase tracking-[0.15em] text-slate-300">
+                      {cat}
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {visits.map((visit) => (
+                        <div
+                          key={visit.title}
+                          className="rounded-xl border border-white/10 bg-white/5 p-4"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm text-slate-300">
+                                {visit.timeframe} · Priorità {visit.priority}
+                              </p>
+                              <h3 className="text-lg font-semibold text-white">
+                                {visit.title}
+                              </h3>
+                              <p className="mt-2 text-sm text-slate-100">
+                                {visit.reason}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 grid gap-2 md:grid-cols-[1.1fr_0.9fr]">
+                            <Select
+                              label="Stato"
+                              value={
+                                selections[visit.title]?.status ?? "da_prenotare"
+                              }
+                              onChange={(v) =>
+                                setSelections((prev) => ({
+                                  ...prev,
+                                  [visit.title]: {
+                                    status: v as VisitStatus,
+                                    when:
+                                      v === "fatta"
+                                        ? prev[visit.title]?.when ??
+                                          "meno di 1 mese fa"
+                                        : "",
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="da_prenotare">Da prenotare</option>
+                              <option value="fatta">Già fatta</option>
+                              <option value="non_fatta">Non fatta</option>
+                            </Select>
+                            {selections[visit.title]?.status === "fatta" && (
+                              <Field
+                                label="Quando (se fatta)"
+                                value={selections[visit.title]?.when ?? ""}
+                                onChange={(v) =>
+                                  setSelections((prev) => ({
+                                    ...prev,
+                                    [visit.title]: {
+                                      status:
+                                        prev[visit.title]?.status ??
+                                        "da_prenotare",
+                                      when: v,
+                                    },
+                                  }))
+                                }
+                                placeholder="es. 2 settimane fa"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              },
+            )}
+          </div>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-300">
+              Segna lo stato delle visite, poi genera opzioni tra pubblico e
+              privato.
+            </p>
+            <button
+              onClick={generateSlots}
+              disabled={loadingSlots}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:translate-y-[-1px] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loadingSlots ? "Calcolo opzioni..." : "Genera slot e prezzi"}
+            </button>
           </div>
         </section>
+
+        {slots && (
+          <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">
+                Slot pubblico/privato suggeriti
+              </h2>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-300">
+                Basati sulle visite da prenotare
+              </span>
+            </div>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {slots.map((slot) => (
+                <div
+                  key={slot.title}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                >
+                  <h3 className="text-lg font-semibold text-white">
+                    {slot.title}
+                  </h3>
+                  <div className="mt-3 space-y-3">
+                    {slot.options.map((opt, idx) => (
+                      <div
+                        key={`${slot.title}-${idx}`}
+                        className="rounded-xl bg-white/5 p-3 text-sm text-slate-100"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.12em]">
+                            {opt.channel}
+                          </span>
+                          <span className="text-emerald-200">
+                            {opt.priceRange}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-slate-200">
+                          Attesa: {opt.waitingTime}
+                        </p>
+                        <p className="text-slate-300">{opt.notes}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
@@ -325,9 +526,9 @@ type FieldProps = {
   value: string;
   onChange: (value: string) => void;
   type?: string;
+  placeholder?: string;
 };
-
-function Field({ label, value, onChange, type = "text" }: FieldProps) {
+function Field({ label, value, onChange, type = "text", placeholder }: FieldProps) {
   return (
     <label className="space-y-2 text-sm text-slate-200">
       {label}
@@ -336,10 +537,12 @@ function Field({ label, value, onChange, type = "text" }: FieldProps) {
         className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none ring-emerald-400/40 focus:ring-2"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
       />
     </label>
   );
 }
+
 
 type TextAreaProps = {
   label: string;

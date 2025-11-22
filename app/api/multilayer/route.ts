@@ -5,11 +5,18 @@ const client = new OpenAI({
   apiKey: process.env.API_KEY,
 });
 
+type VisitCategory =
+  | "fortemente consigliata"
+  | "routine"
+  | "benessere"
+  | "altre";
+
 type AiVisit = {
   title: string;
   timeframe: string;
   reason: string;
   priority: "alta" | "media" | "bassa";
+  category: VisitCategory;
 };
 
 type AgentResult = {
@@ -34,18 +41,21 @@ const fallback: AgentResult = {
       timeframe: "entro 2 settimane",
       reason: "Allineare storico allergie e valutare stress cronico.",
       priority: "alta",
+      category: "fortemente consigliata",
     },
     {
       title: "Screening metabolico",
       timeframe: "entro 1 mese",
       reason: "Familiarità per diabete: glicemia, HbA1c, profilo lipidico.",
       priority: "media",
+      category: "routine",
     },
     {
       title: "Counseling benessere",
       timeframe: "dopo 6 settimane",
       reason: "Gestione stress + sonno: proporre percorso breve con follow-up.",
       priority: "bassa",
+      category: "benessere",
     },
   ],
   dataPulls: [
@@ -77,7 +87,14 @@ export async function POST(request: Request) {
         {
           role: "system",
           content:
-            "Sei un master orchestrator sanitario. Hai 3 agenti virtuali: Profilatore (sintetizza rischio, vincoli, gap dati), Schedulatore (propone visite con fascia temporale e priorità), DataLink (richiede dati all'ente salute e alert ai medici). Devi prendere l'iniziativa: orchestri i 3 agenti e restituisci SOLO un JSON con chiavi profileSummary, riskHighlights (array), recommendedVisits (array di {title,timeframe,reason,priority: alta|media|bassa}), dataPulls (array), proactiveMessage (frase). Rispondi in italiano, conciso ma clinico.",
+            [
+              "Sei un assistente che propone controlli medici periodici (check-up, visite, esami del sangue, screening) sulla base di età, sesso biologico, fattori di rischio (fumo, obesità, familiarità, patologie note), sintomi riferiti, area geografica.",
+              "Limiti IMPORTANTI: non sei un medico, niente diagnosi o prescrizioni; indicazioni solo generali da confermare con un medico; se emergono sintomi gravi (dolore toracico, dispnea, segni di ictus, pensieri suicidari, febbre molto alta persistente, ecc.) devi dire di contattare subito 118/PS/medico curante; non dare dosaggi, esami invasivi complessi o interpretazioni avanzate.",
+              "Cosa fare: leggi i dati del paziente; fai domande solo se mancano dati fondamentali; restituisci elenco strutturato di controlli annuali, controlli biennali/triennali/quinquennali, screening rilevanti per età/sesso, visite specialistiche sensate.",
+              "Per ogni voce: tipo visita/esame, frequenza indicativa, motivazione semplice. Concludi sempre con: 'Queste sono indicazioni generali: portale al tuo medico di base per decidere insieme cosa è davvero appropriato per te.'",
+              "Stile: chiaro, sintetico ma completo, in italiano semplice; usa elenchi puntati e intestazioni (###); se non sei sicuro, dillo esplicitamente.",
+              "Formato JSON OBBLIGATORIO con chiavi: profileSummary, riskHighlights (array), recommendedVisits (array di {title,timeframe,reason,priority: alta|media|bassa,category: fortemente consigliata|routine|benessere|altre}), dataPulls (array), proactiveMessage (frase). Motivazioni e frequenze devono rispettare i limiti sopra.",
+            ].join(" "),
         },
         {
           role: "user",
@@ -131,6 +148,13 @@ function normalizeResult(input: unknown): AgentResult {
           visit?.priority === "bassa"
             ? visit.priority
             : "media",
+        category:
+          visit?.category === "fortemente consigliata" ||
+          visit?.category === "routine" ||
+          visit?.category === "benessere" ||
+          visit?.category === "altre"
+            ? visit.category
+            : "fortemente consigliata",
       }))
       .slice(0, 5);
   };
