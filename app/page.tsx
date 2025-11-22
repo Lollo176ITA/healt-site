@@ -1,64 +1,129 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="relative overflow-hidden bg-[#0d131c]">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#12223a] via-[#0d131c] to-[#0d131c] opacity-80" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(76,140,255,0.08),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(255,204,112,0.08),transparent_28%),radial-gradient(circle_at_60%_70%,rgba(82,255,197,0.06),transparent_26%)]" />
+      <main className="relative mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-20 pt-16 sm:px-6 lg:px-8">
+        <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm text-teal-100">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              Assistente salute proattivo
+            </div>
+            <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">
+              La tua salute, gestita da un assistente dedicato
+            </h1>
+            <p className="text-lg text-slate-200">
+              Inserisci i dati essenziali, ottieni raccomandazioni di visite e
+              richieste verso l&apos;ente salute con un flusso automatico e chiaro,
+              senza dover gestire la complessità.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {[
+                "Profilazione personalizzata",
+                "Agenda dinamica",
+                "Richieste ente salute",
+                "Tono clinico, output pronti",
+              ].map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-white/10 px-4 py-2 text-sm text-slate-100"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="/profilo"
+                className="inline-flex items-center rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:translate-y-[-1px] hover:bg-emerald-300"
+              >
+                Crea foto del paziente
+              </a>
+              <a
+                href="/dashboard"
+                className="inline-flex items-center rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white hover:border-white/40"
+              >
+                Vai alla dashboard
+              </a>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur">
+            <p className="text-sm uppercase tracking-[0.2em] text-slate-300">
+              Come funziona
+            </p>
+            <div className="mt-4 space-y-4 text-sm text-slate-100">
+              <div className="rounded-2xl bg-white/5 p-4">
+                <p className="text-emerald-200 text-xs font-semibold uppercase tracking-[0.18em]">
+                  1 · Foto iniziale
+                </p>
+                <p className="mt-2">
+                  Inserisci età, sesso, cronico, allergie, regione e note. L&apos;assistente crea uno snapshot clinico essenziale.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/5 p-4">
+                <p className="text-sky-200 text-xs font-semibold uppercase tracking-[0.18em]">
+                  2 · Deleghe automatiche
+                </p>
+                <p className="mt-2">
+                  Valutiamo rischi, suggeriamo le visite con priorità e chiediamo i referti all&apos;ente salute.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/5 p-4">
+                <p className="text-amber-200 text-xs font-semibold uppercase tracking-[0.18em]">
+              3 · Azioni subito
+                </p>
+                <p className="mt-2">
+                  La dashboard mostra visite consigliate e follow-up pronti da confermare.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-6 md:grid-cols-3">
+          {[
+            {
+              title: "Privacy-by-design",
+              desc: "Nessun dato sensibile in chiaro. Le richieste a DataLink sono sintetiche.",
+            },
+            {
+              title: "Agenda guidata",
+              desc: "Visite con priorità alta/media/bassa e fasce temporali consigliate.",
+            },
+            {
+              title: "Tono clinico",
+              desc: "Output concisi, in italiano, pronti per il medico e per il paziente.",
+            },
+          ].map((card) => (
+            <div
+              key={card.title}
+              className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.4)]"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
+              <h3 className="text-lg font-semibold text-white">{card.title}</h3>
+              <p className="mt-2 text-sm text-slate-100">{card.desc}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-300">
+                Demo rapida
+              </p>
+              <h2 className="text-2xl font-semibold text-white">
+                Prova la dashboard con dati di esempio
+              </h2>
+            </div>
             <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              href="/dashboard"
+              className="inline-flex items-center rounded-full bg-white/10 px-5 py-3 text-sm font-semibold text-white hover:bg-white/20"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              Apri dashboard
+            </a>
+          </div>
+        </section>
       </main>
     </div>
   );
